@@ -1,9 +1,9 @@
 # Markov Chain — Next Word Predictor
 
-A next-word prediction engine built from scratch in Python, with an interactive Streamlit web interface. No ML libraries — just probability theory and linear algebra.
+A next-word prediction engine built from scratch in Python, with an interactive Streamlit web interface. No ML libraries, just probability theory and linear algebra.
 
 ## Live Demo
-👉 [Try it here](https://your-app.streamlit.app) ← update this link after deployment
+[Try it here](https://your-app.streamlit.app) ← update this link after deployment
 
 ## What it does
 - Trains a Markov chain transition matrix on any text corpus you provide
