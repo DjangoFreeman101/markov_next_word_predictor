@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 from collections import defaultdict
 
 # PREPROCESSING
-#will this update?
 def preprocess(text: str, order: int = 1) -> list[str]:
     text = text.lower()
     text = re.sub(r"(?<=[a-z])'(?=[a-z])", "apostrophe", text)
