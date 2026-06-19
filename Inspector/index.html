@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>בודק אוטובוס</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; }
+
+    #header {
+      background: #1a1a2e;
+      color: white;
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    #map {
+      height: calc(100vh - 50px);
+      width: 100%;
+    }
+
+    /* Popup styling */
+    .popup-box { text-align: center; min-width: 180px; }
+    .popup-name { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #1a1a2e; }
+    .popup-status { font-size: 13px; margin-bottom: 12px; color: #555; }
+    .popup-buttons { display: flex; gap: 8px; justify-content: center; }
+    .btn {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-red   { background: #e74c3c; color: white; }
+    .btn-green { background: #27ae60; color: white; }
+  </style>
+</head>
+<body>
+
+<div id="header">🚌 בודק אוטובוס — ראשון לציון</div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([31.9730, 34.7895], 14);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  function makeIcon(status) {
+    const color = status === true ? '#e74c3c' : status === false ? '#27ae60' : '#95a5a6';
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+        <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22S28 24.5 28 14C28 6.27 21.73 0 14 0z" fill="${color}"/>
+        <circle cx="14" cy="14" r="7" fill="white"/>
+      </svg>`;
+    return L.divIcon({
+      html: svg,
+      iconSize: [28, 36],
+      iconAnchor: [14, 36],
+      popupAnchor: [0, -36],
+      className: ''
+    });
+  }
+
+  function statusText(station) {
+    if (station.has_inspector === null) return '⚪ אין דיווח עדיין';
+    if (station.has_inspector) return `🔴 יש בודק — לפני ${station.minutes_ago} דק'`;
+    return `🟢 נקי — לפני ${station.minutes_ago} דק'`;
+  }
+
+  async function report(stationId, hasInspector) {
+    await fetch('/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ station_id: stationId, has_inspector: hasInspector })
+    });
+    loadStations();
+  }
+
+  let markers = {};
+
+  async function loadStations() {
+    const res = await fetch('/stations');
+    const stations = await res.json();
+
+    stations.forEach(s => {
+      const popupHTML = `
+        <div class="popup-box">
+          <div class="popup-name">${s.name}</div>
+          <div class="popup-status">${statusText(s)}</div>
+          <div class="popup-buttons">
+            <button class="btn btn-red"   onclick="report(${s.id}, true)">🚨 יש בודק</button>
+            <button class="btn btn-green" onclick="report(${s.id}, false)">✅ נקי</button>
+          </div>
+        </div>`;
+
+      if (markers[s.id]) {
+        markers[s.id].setIcon(makeIcon(s.has_inspector));
+        markers[s.id].setPopupContent(popupHTML);
+      } else {
+        const m = L.marker([s.lat, s.lon], { icon: makeIcon(s.has_inspector) })
+          .addTo(map)
+          .bindPopup(popupHTML);
+        markers[s.id] = m;
+      }
+    });
+  }
+
+  loadStations();
+  setInterval(loadStations, 60000); // refresh every minute
+</script>
+</body>
+</html>
